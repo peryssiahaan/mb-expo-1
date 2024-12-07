@@ -21,25 +21,23 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 WebBrowser.maybeCompleteAuthSession();
 
+const host = process.env.EXPO_PUBLIC_UM_AUTH_URL ?? "http://localhost:3020";
+
 const discovery: DiscoveryDocument = {
-  authorizationEndpoint:
-    "https://ospdev-api.astra.co.id/api/centralize-user-management/auth/authorize",
-  tokenEndpoint:
-    "https://ospdev-api.astra.co.id/api/centralize-user-management/auth/token",
-  revocationEndpoint:
-    "https://ospdev-api.astra.co.id/api/centralize-user-management/auth/revoke",
-  userInfoEndpoint:
-    "https://ospdev-api.astra.co.id/api/centralize-user-management/client/user-info",
-  endSessionEndpoint:
-    "https://ospdev-api.astra.co.id/api/centralize-user-management/auth/logout",
+  authorizationEndpoint: `${host}/auth/authorize`,
+  tokenEndpoint: `${host}/auth/token`,
+  revocationEndpoint: `${host}/auth/revoke`,
+  userInfoEndpoint: `${host}/client/user-info`,
+  endSessionEndpoint: `${host}/auth/logout`,
 };
 
 export default function Home() {
   const [authTokens, setAuthTokens] = useState<TokenResponse | null>(null);
-  const clientId = process.env.EXPO_PUBLIC_CLIENT_ID;
+  const clientId = process.env.EXPO_PUBLIC_UM_CLIENT_ID;
+  const clientSecret = process.env.EXPO_PUBLIC_UM_CLIENT_SECRET;
 
-  if (!clientId) {
-    console.error("No client id");
+  if (!clientId || !clientSecret) {
+    console.error("No client id or client secret");
     return;
   }
 
@@ -76,6 +74,8 @@ export default function Home() {
           discovery
         );
 
+        console.log("exchangeTokenResponse", exchangeTokenResponse);
+
         setAuthTokens(exchangeTokenResponse);
 
         await AsyncStorage.setItem(
@@ -100,10 +100,7 @@ export default function Home() {
 
     try {
       const tokenResponse = await authTokens.refreshAsync(
-        {
-          clientId,
-          clientSecret: "jo7MIT1CctWmCFMfvjQDLx4l5wpG-FCp",
-        },
+        { clientId, clientSecret },
         discovery
       );
 
@@ -116,12 +113,7 @@ export default function Home() {
   };
 
   const handleRevoke = async () => {
-    if (!authTokens) {
-      console.error("No authTokens to revoke");
-      return;
-    }
-
-    if (!authTokens.accessToken) {
+    if (!authTokens?.accessToken) {
       console.error("No accessToken to revoke");
       return;
     }
@@ -132,7 +124,7 @@ export default function Home() {
           token: authTokens.accessToken,
           tokenTypeHint: TokenTypeHint.AccessToken,
           clientId,
-          clientSecret: "jo7MIT1CctWmCFMfvjQDLx4l5wpG-FCp",
+          clientSecret,
         },
         discovery
       );

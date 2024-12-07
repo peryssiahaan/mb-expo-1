@@ -19,7 +19,7 @@ const config: ExpoConfig = {
       backgroundColor: '#ffffff'
     },
     package: 'com.peryssiahaan.mbexpo1',
-    googleServicesFile: process.env.GOOGLE_SERVICES_FILE ?? './google-services.json'
+    googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? './google-services.json'
   },
   web: {
     bundler: 'metro',

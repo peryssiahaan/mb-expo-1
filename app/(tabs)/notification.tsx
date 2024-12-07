@@ -29,7 +29,7 @@ Notifications.setNotificationHandler({
   }),
 });
 
-export default function Notification(): JSX.Element {
+export default function Notification() {
   const [expoPushToken, setExpoPushToken] = useState<string>("");
   const [notification, setNotification] = useState<NotificationData | null>(
     null
