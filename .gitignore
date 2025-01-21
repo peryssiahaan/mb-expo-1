@@ -40,3 +40,4 @@ app-example
 *.env*
 *.aab
 google-services.json
+credentials.json

@@ -15,6 +15,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -29,6 +30,35 @@ const discovery: DiscoveryDocument = {
   revocationEndpoint: `${host}/auth/revoke`,
   userInfoEndpoint: `${host}/client/user-info`,
   endSessionEndpoint: `${host}/auth/logout`,
+};
+
+const TokenTable = ({ tokens }: { tokens: TokenResponse | null }) => {
+  if (!tokens) return <Text style={styles.noTokens}>No tokens yet.</Text>;
+
+  const tokenData = {
+    AccessToken: tokens.accessToken,
+    RefreshToken: tokens.refreshToken || "Not available",
+    ExpiresIn: tokens.expiresIn?.toString() || "Not specified",
+    IssuedAt: new Date(tokens.issuedAt || 0).toLocaleString(),
+  };
+
+  return (
+    <View style={styles.table}>
+      <View style={styles.row}>
+        <Text style={[styles.header, styles.fieldColumn]}>Field</Text>
+        <Text style={[styles.header, styles.valueColumn]}>Value</Text>
+      </View>
+      {Object.entries(tokenData).map(([key, value], index) => (
+        <View
+          key={index}
+          style={[styles.row, index % 2 === 0 && styles.alternateRow]}
+        >
+          <Text style={[styles.cell, styles.fieldColumn]}>{key}</Text>
+          <Text style={[styles.cell, styles.valueColumn]}>{value}</Text>
+        </View>
+      ))}
+    </View>
+  );
 };
 
 export default function Home() {
@@ -55,6 +85,7 @@ export default function Home() {
   useEffect(() => {
     const exchange = async (code: string) => {
       if (!request) {
+        Alert.alert("Error", "No request");
         console.error("No request");
         return;
       }
@@ -74,8 +105,6 @@ export default function Home() {
           discovery
         );
 
-        console.log("exchangeTokenResponse", exchangeTokenResponse);
-
         setAuthTokens(exchangeTokenResponse);
 
         await AsyncStorage.setItem(
@@ -83,6 +112,7 @@ export default function Home() {
           exchangeTokenResponse.accessToken
         );
       } catch (error) {
+        Alert.alert("Error", "error");
         console.error("error", error);
       }
     };
@@ -93,14 +123,24 @@ export default function Home() {
   }, [discovery, request, response]);
 
   const handleRefresh = async () => {
-    if (!authTokens?.refreshToken) {
+    if (!authTokens) {
+      Alert.alert("Error", "No tokens to refresh");
+      return;
+    }
+
+    if (!authTokens.refreshToken) {
       console.error("No refreshToken");
+      return;
+    }
+
+    if (!clientId) {
+      Alert.alert("Error", "No clientId");
       return;
     }
 
     try {
       const tokenResponse = await authTokens.refreshAsync(
-        { clientId, clientSecret },
+        { clientId },
         discovery
       );
 
@@ -108,6 +148,7 @@ export default function Home() {
 
       await AsyncStorage.setItem("accessToken", tokenResponse.accessToken);
     } catch (error) {
+      Alert.alert("Error", "Refresh error");
       console.error("Refresh error", error);
     }
   };
@@ -161,6 +202,8 @@ export default function Home() {
 
       // Clear tokens and notify the user
       setAuthTokens(null);
+
+      await AsyncStorage.removeItem("accessToken");
     } catch (error) {
       console.error("Logout error", error);
     }
@@ -200,13 +243,7 @@ export default function Home() {
         >
           <Text style={styles.buttonText}>Logout</Text>
         </TouchableOpacity>
-
-        <Text style={styles.infoTitle}>Auth Tokens:</Text>
-        <View style={styles.tokenContainer}>
-          <Text style={styles.tokenText}>
-            {JSON.stringify(authTokens, null, 2) || "No tokens yet."}
-          </Text>
-        </View>
+        <TokenTable tokens={authTokens} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -266,5 +303,46 @@ const styles = StyleSheet.create({
   tokenText: {
     fontSize: 14,
     color: "#333",
+  },
+  noTokens: {
+    fontSize: 16,
+    color: "#777",
+    textAlign: "center",
+    marginTop: 8,
+  },
+  table: {
+    width: "100%",
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    backgroundColor: "#fff",
+    overflow: "hidden",
+  },
+  row: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#ddd",
+  },
+  alternateRow: {
+    backgroundColor: "#f7f7f7",
+  },
+  header: {
+    fontWeight: "bold",
+    fontSize: 16,
+    color: "#333",
+    padding: 10,
+    backgroundColor: "#f0f0f0",
+  },
+  cell: {
+    fontSize: 14,
+    color: "#555",
+    padding: 10,
+  },
+  fieldColumn: {
+    flex: 1, // Field column takes 1 part
+  },
+  valueColumn: {
+    flex: 2, // Value column takes 2 parts
   },
 });

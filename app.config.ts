@@ -18,7 +18,7 @@ const config: ExpoConfig = {
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#ffffff'
     },
-    package: 'com.peryssiahaan.mbexpo1',
+    package: 'id.astra.tso.ospmobile.dev',
     googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? './google-services.json'
   },
   web: {
